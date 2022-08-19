@@ -63,8 +63,7 @@ class ReplyQueue(ReplyQueueBase):
                 continue                 
             return message
     
-    def _create_queue(self): 
-        print("Queue Name : {}".format(self.get_name() ))      
+    def _create_queue(self):        
         self._queue = self._connection.resource.create_queue(
             QueueName=self.get_name(),
             Attributes={
