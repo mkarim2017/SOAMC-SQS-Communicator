@@ -6,16 +6,18 @@ from sqs_client.idle_queue_sweeper import IdleQueueSweeper
 
 class SqsConnectionFactory:
 
-    def __init__(self, region_name, access_key=None, secret_key=None):
+    def __init__(self, region_name, access_key=None, secret_key=None, session_token=None):
         self._region_name = region_name
         self._access_key= access_key 
         self._secret_key = secret_key
+        self._session_token = session_token
     
     def build(self):
         return SqsConnection(
             access_key=self._access_key,
             secret_key=self._secret_key,
-            region_name=self._region_name
+            region_name=self._region_name,
+            session_token=self._session_token
         )
 
 class BaseFactory:
@@ -23,12 +25,14 @@ class BaseFactory:
     def __init__(self, 
         region_name, 
         access_key=None, 
-        secret_key=None, 
+        secret_key=None,
+        session_token=None, 
         sqs_connection_factory=SqsConnectionFactory
     ):
         self._region_name = region_name
         self._access_key = access_key 
         self._secret_key = secret_key 
+        self._session_token = session_token
         self._sqs_connection_factory = sqs_connection_factory
     
     def build(self):
@@ -38,7 +42,8 @@ class BaseFactory:
         return self._sqs_connection_factory(
             self._region_name, 
             self._access_key, 
-            self._secret_key
+            self._secret_key,
+            self._session_token,
         ).build()
 
     
@@ -110,6 +115,7 @@ class ReplyQueueFactory(BaseFactory):
             self._region_name,
             self._access_key, 
             self._secret_key,
+            self._session_token
         ).build()
     
     def _build_publisher(self):
@@ -117,4 +123,5 @@ class ReplyQueueFactory(BaseFactory):
             self._region_name,
             self._access_key, 
             self._secret_key,
+            self._session_token
         ).build()

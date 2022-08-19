@@ -23,6 +23,8 @@ config.read(CONFIG_FILER_PATH)
 os.environ["AWS_ACCOUNT_ID"] = config["AWS_SQS_QUEUE"]["AWS_ACCOUNT_ID"]
 os.environ["AWS_ACCESS_KEY"] = config["AWS_SQS_QUEUE"]["aws_access_key"]
 os.environ["AWS_SECRET_ACCESS_KEY"] = config["AWS_SQS_QUEUE"]["aws_secret_key"]
+os.environ["AWS_SESSION_TOKEN"] = config["AWS_SQS_QUEUE"]["aws_session_token"]
+
 wps_server = config["ADES_WPS-T_SERVER"]["wps_server_url"]
 queue_url = config["AWS_SQS_QUEUE"]['queue_url']
 reply_timeout_sec = int(config["AWS_SQS_QUEUE"].get("reply_timeout_sec", 20))
@@ -30,16 +32,19 @@ execute_reply_timeout_sec = int(config["AWS_SQS_QUEUE"].get("execute_reply_timeo
 deploy_process_timeout_sec = int(config["AWS_SQS_QUEUE"].get("deploy_process_timeout_sec", 900))
 
 reply_queue_name = 'reply_queue_{}'.format(os.path.basename(queue_url))
+reply_queue_name = config["AWS_SQS_QUEUE"]['reply_queue']
 reply_queue = ReplyQueueFactory(
     name=reply_queue_name,
     access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],
     secret_key=config["AWS_SQS_QUEUE"]["aws_secret_key"],
+    session_token = config["AWS_SQS_QUEUE"]["aws_session_token"],
     region_name=config["AWS_SQS_QUEUE"]['region_name']
 ).build()
 
 publisher = PublisherFactory(
     access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],
     secret_key=config["AWS_SQS_QUEUE"]["aws_secret_key"],
+    session_token = config["AWS_SQS_QUEUE"]["aws_session_token"],
     region_name=config["AWS_SQS_QUEUE"]['region_name']
 ).build()
 
