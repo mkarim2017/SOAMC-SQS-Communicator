@@ -255,6 +255,7 @@ if __name__ == "__main__":
     subscriber = SubscriberFactory(
         access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],
         secret_key=config["AWS_SQS_QUEUE"]["aws_secret_key"],
+        session_token = config["AWS_SQS_QUEUE"]["aws_session_token"],
         region_name=config["AWS_SQS_QUEUE"]['region_name'],
         queue_url=config["AWS_SQS_QUEUE"]['queue_url']
     ).build()
@@ -262,6 +263,7 @@ if __name__ == "__main__":
     publisher = PublisherFactory(
         access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],
         secret_key=config["AWS_SQS_QUEUE"]["aws_secret_key"],
+        session_token = config["AWS_SQS_QUEUE"]["aws_session_token"],
         region_name=config["AWS_SQS_QUEUE"]['region_name']
     ).build()
 
