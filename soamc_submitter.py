@@ -32,6 +32,7 @@ execute_reply_timeout_sec = int(config["AWS_SQS_QUEUE"].get("execute_reply_timeo
 deploy_process_timeout_sec = int(config["AWS_SQS_QUEUE"].get("deploy_process_timeout_sec", 900))
 
 reply_queue_name = 'reply_queue_{}'.format(os.path.basename(queue_url))
+reply_queue_name = config["AWS_SQS_QUEUE"]['reply_queue']
 reply_queue = ReplyQueueFactory(
     name=reply_queue_name,
     access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],

@@ -4,9 +4,10 @@ from sqs_client.contracts import SqsConnection as SqsConnectionBase
 
 class SqsConnection(SqsConnectionBase):
 
-    def __init__(self, region_name: str, access_key: str=None, secret_key: str=None):
+    def __init__(self, region_name: str, access_key: str=None, secret_key: str=None, session_token: str=None):
         self._access_key = access_key 
         self._secret_key = secret_key
+        self._session_token = session_token
         self._region_name = region_name 
         self._queue_url = None
         self._load_resource()
@@ -28,6 +29,7 @@ class SqsConnection(SqsConnectionBase):
         session = boto3.Session(
             aws_access_key_id=self._access_key,
             aws_secret_access_key=self._secret_key,
+            aws_session_token=self._session_token
         )
         self.resource = session.resource('sqs', region_name=self._region_name)
 
@@ -36,6 +38,7 @@ class SqsConnection(SqsConnectionBase):
             'sqs',
             aws_access_key_id=self._access_key,
             aws_secret_access_key=self._secret_key,
+            aws_session_token=self._session_token,
             region_name=self._region_name
         )
   
