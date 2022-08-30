@@ -26,15 +26,14 @@ os.environ["AWS_SECRET_ACCESS_KEY"] = config["AWS_SQS_QUEUE"]["aws_secret_key"]
 os.environ["AWS_SESSION_TOKEN"] = config["AWS_SQS_QUEUE"]["aws_session_token"]
 
 wps_server = config["ADES_WPS-T_SERVER"]["wps_server_url"]
-queue_url = config["AWS_SQS_QUEUE"]['queue_url']
+default_queue_url = config["AWS_SQS_QUEUE"].get('queue_url', None)
 reply_timeout_sec = int(config["AWS_SQS_QUEUE"].get("reply_timeout_sec", 20))
 execute_reply_timeout_sec = int(config["AWS_SQS_QUEUE"].get("execute_reply_timeout_sec", 600))
 deploy_process_timeout_sec = int(config["AWS_SQS_QUEUE"].get("deploy_process_timeout_sec", 900))
 
-reply_queue_name = 'reply_queue_{}'.format(os.path.basename(queue_url))
-reply_queue_name = config["AWS_SQS_QUEUE"]['reply_queue']
-reply_queue = ReplyQueueFactory(
-    name=reply_queue_name,
+default_reply_queue_name = config["AWS_SQS_QUEUE"].get('reply_queue', 'reply_queue_')
+default_reply_queue = ReplyQueueFactory(
+    name=default_reply_queue_name,
     access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],
     secret_key=config["AWS_SQS_QUEUE"]["aws_secret_key"],
     session_token = config["AWS_SQS_QUEUE"]["aws_session_token"],
@@ -48,6 +47,8 @@ publisher = PublisherFactory(
     region_name=config["AWS_SQS_QUEUE"]['region_name']
 ).build()
 
+reply_queue_dict = {}
+reply_queue_dict[os.path.basename(default_queue_url)] = default_reply_queue
 
 
 '''
@@ -66,7 +67,31 @@ logging.basicConfig(level=logging.INFO)
 
 app = typer.Typer()
 
-def submit_message(data, timeout=reply_timeout_sec):
+def get_reply_queue(queue_url):
+
+    global reply_queue_dict
+
+    queue_name = os.path.basename(queue_url)
+    if queue_name in reply_queue_dict.keys():
+        return reply_queue_dict[queue_name]
+
+    reply_queue_name = "reply_queue_{}".format(queue_name)
+
+
+    reply_queue = ReplyQueueFactory(
+        name=reply_queue_name,
+        access_key=config["AWS_SQS_QUEUE"]["aws_access_key"],
+        secret_key=config["AWS_SQS_QUEUE"]["aws_secret_key"],
+        session_token = config["AWS_SQS_QUEUE"]["aws_session_token"],
+        region_name=config["AWS_SQS_QUEUE"]['region_name']
+    ).build()
+    reply_queue_dict[queue_name] = reply_queue
+
+    return reply_queue
+
+def submit_message(data, queue_url=default_queue_url, timeout=reply_timeout_sec):
+
+    reply_queue = get_reply_queue(queue_url)
     message = RequestMessage(
         body= json.dumps(data),
         queue_url= queue_url,
@@ -105,45 +130,45 @@ def submit_message(data, timeout=reply_timeout_sec):
         reply_queue.remove_queue()
 
 @app.command()
-def getLandingPage():
+def getLandingPage(queue_url:str):
     data = {'job_type': const.GET_LANDING_PAGE}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def getProcesses():
+def getProcesses(queue_url:str):
     data = {'job_type': const.GET_PROCESSES}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def deployProcess(payload:str):
+def deployProcess(payload:str, queue_url:str):
     data = {'job_type': const.DEPLOY_PROCESS, 'payload_data' : payload}
-    response = submit_message(data, timeout=deploy_process_timeout_sec)
+    response = submit_message(data, queue_url, timeout=deploy_process_timeout_sec)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def getProcessDescription(process_id: str):
+def getProcessDescription(process_id: str, queue_url:str):
     print(process_id)
     data = {'job_type': const.GET_PROCESS_DESCRIPTION, 'process_id' : process_id}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def undeployProcess(process_id: str):
+def undeployProcess(process_id: str, queue_url:str):
     print(process_id)
     data = {'job_type': const.UNDEPLOY_PROCESS, 'process_id' : process_id}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def getJobList(process_id: str):
+def getJobList(process_id: str, queue_url:str):
     data = {'job_type': const.GET_JOB_LIST, 'process_id' : process_id}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def execute(process_id: str, payload_data: str):
+def execute(process_id: str, payload_data: str, queue_url:str):
     print(process_id)
     if os.path.exists(payload_data):
         with open(payload_data, 'r') as f:
@@ -151,28 +176,28 @@ def execute(process_id: str, payload_data: str):
     else:
         payload =  payload_data
     data = {'job_type': const.EXECUTE, 'process_id' : process_id, 'payload_data' : payload}
-    response = submit_message(data, timeout=execute_reply_timeout_sec)
+    response = submit_message(data, queue_url, timeout=execute_reply_timeout_sec)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def getStatus(process_id: str, job_id:str):
+def getStatus(process_id: str, job_id:str, queue_url:str):
     print(process_id)
     data = {'job_type': const.GET_STATUS, 'process_id' : process_id, 'job_id': job_id}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def dismiss(process_id: str, job_id:str):
+def dismiss(process_id: str, job_id:str, queue_url:str):
     print(process_id)
     data = {'job_type': const.DISMISS, 'process_id' : process_id, 'job_id': job_id}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 @app.command()
-def getResult(process_id: str, job_id:str):
+def getResult(process_id: str, job_id:str, queue_url:str):
     print(process_id)
     data = {'job_type': const.GET_RESULT, 'process_id' : process_id, 'job_id': job_id}
-    response = submit_message(data)
+    response = submit_message(data, queue_url)
     print(json.dumps(response, indent=2))
 
 if __name__=="__main__":

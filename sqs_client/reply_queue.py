@@ -50,7 +50,7 @@ class ReplyQueue(ReplyQueueBase):
         return self._queue.url 
     
     def get_name(self):
-        self._id = str(random.getrandbits(128))
+        self._id = str(random.getrandbits(32))
         return self._name + self._id
     
     def get_response_by_id(self, message_id: str, timeout: int=5) -> Message:
@@ -63,7 +63,8 @@ class ReplyQueue(ReplyQueueBase):
                 continue                 
             return message
     
-    def _create_queue(self):        
+    def _create_queue(self):
+        print("self.get_name() : {}".format(self.get_name()))       
         self._queue = self._connection.resource.create_queue(
             QueueName=self.get_name(),
             Attributes={
